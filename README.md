@@ -1,6 +1,21 @@
-# updatenight-mcp
+# Update Night MCP
 
 MCP server for the Update Night catalog. Gives AI assistants tools to search and explore AI dev tools, skills, and MCP servers.
+
+## Install
+
+```
+cargo install --git https://github.com/amajorai/updatenight-mcp
+```
+
+Or build from source:
+
+```
+git clone https://github.com/amajorai/updatenight-mcp
+cd updatenight-mcp
+cargo build --release
+# binary at target/release/updatenight-mcp (or updatenight-mcp.exe on Windows)
+```
 
 ## Tools
 
@@ -14,15 +29,7 @@ MCP server for the Update Night catalog. Gives AI assistants tools to search and
 
 ## Authentication
 
-On first run the server starts a device authorization flow. It prints a URL and user code to stderr and opens the browser. Once you approve, the token is saved to `~/.config/updatenight/mcp-config.json` (Linux/macOS) or `%APPDATA%\updatenight\mcp-config.json` (Windows) and the server starts normally on subsequent runs.
-
-## Building
-
-```
-cargo build --release
-```
-
-The binary will be at `target/release/updatenight-mcp` (or `updatenight-mcp.exe` on Windows).
+On first run the server starts a device authorization flow. It prints a URL and user code to stderr and opens the browser. Once you approve, the token is saved to `~/.config/updatenight/mcp-config.json` (Linux/macOS) or `%APPDATA%\updatenight\mcp-config.json` (Windows) and subsequent runs start immediately.
 
 ## Claude Desktop setup
 
@@ -40,4 +47,9 @@ Add this to your Claude Desktop config (`claude_desktop_config.json`):
 
 ## Configuration
 
-Set `UPDATENIGHT_API_URL` to point at a different API host (defaults to `https://server.updatenight.com`).
+Set `UPDATENIGHT_API_URL` to point at a different API host. Defaults to `https://server.updatenight.com`.
+
+## Related
+
+- [Update Night CLI](https://github.com/amajorai/updatenight-cli) -- terminal UI for browsing the catalog
+- [Update Night Skill](https://github.com/amajorai/updatenight-skill) -- Claude Code skill for browsing the catalog from any AI agent
