@@ -2,6 +2,18 @@
 name = "updatenight-mcp"
 version = "0.1.0"
 edition = "2021"
+description = "Update Night MCP server — AI assistant tools for the catalog"
+license = "MIT"
+repository = "https://github.com/amajorai/updatenight-mcp"
+
+[package.metadata.binstall]
+pkg-url = "https://github.com/amajorai/updatenight-mcp/releases/download/v{ version }/updatenight-mcp-{ target }.tar.gz"
+bin-dir = "updatenight-mcp{ binary-ext }"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-url = "https://github.com/amajorai/updatenight-mcp/releases/download/v{ version }/updatenight-mcp-{ target }.zip"
+pkg-fmt = "zip"
 
 [[bin]]
 name = "updatenight-mcp"

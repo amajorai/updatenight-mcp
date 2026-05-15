@@ -1,11 +1,24 @@
 use rmcp::{
-    handler::server::wrapper::Parameters,
-    model::{Implementation, ServerCapabilities, ServerInfo},
-    schemars, tool, tool_handler, tool_router, ServerHandler,
+    RoleServer,
+    handler::server::{
+        tool::ToolCallContext,
+        wrapper::Parameters,
+    },
+    model::{
+        Annotated, Annotations, CallToolRequestParams, CallToolResult, Implementation,
+        ListResourcesResult, ListToolsResult, Meta, PaginatedRequestParams, RawResource,
+        ReadResourceRequestParams, ReadResourceResult, ResourceContents, ServerCapabilities,
+        ServerInfo, Tool,
+    },
+    schemars, service::RequestContext, tool, tool_router, ServerHandler,
 };
 use serde::Deserialize;
 
 use crate::auth::api_base;
+
+const SEARCH_UI_HTML: &str = include_str!("ui/search.html");
+
+const SEARCH_UI_URI: &str = "ui://updatenight/search";
 
 #[derive(Clone)]
 pub struct UpdateNightMcp {
@@ -104,12 +117,14 @@ impl UpdateNightMcp {
     }
 }
 
-#[tool_handler(router = UpdateNightMcp::tool_router())]
 impl ServerHandler for UpdateNightMcp {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
             protocol_version: Default::default(),
-            capabilities: ServerCapabilities::builder().enable_tools().build(),
+            capabilities: ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .build(),
             server_info: Implementation {
                 name: "updatenight".into(),
                 version: "1.0.0".into(),
@@ -122,5 +137,86 @@ impl ServerHandler for UpdateNightMcp {
                 "Search and explore the Update Night catalog of AI dev tools, skills, and MCP servers.".into(),
             ),
         }
+    }
+
+    fn get_tool(&self, name: &str) -> Option<Tool> {
+        Self::tool_router().get(name).cloned()
+    }
+
+    async fn list_tools(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListToolsResult, rmcp::ErrorData> {
+        let mut tools = Self::tool_router().list_all();
+
+        for tool in &mut tools {
+            if tool.name == "search" {
+                let mut meta = Meta::new();
+                meta.insert(
+                    "ui".to_string(),
+                    serde_json::json!({ "resourceUri": SEARCH_UI_URI }),
+                );
+                tool.meta = Some(meta);
+            }
+        }
+
+        Ok(ListToolsResult::with_all_items(tools))
+    }
+
+    async fn call_tool(
+        &self,
+        request: CallToolRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<CallToolResult, rmcp::ErrorData> {
+        let router = Self::tool_router();
+        let ctx = ToolCallContext::new(self, request, context);
+        router.call(ctx).await
+    }
+
+    async fn list_resources(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListResourcesResult, rmcp::ErrorData> {
+        let resource = Annotated {
+            raw: RawResource {
+                uri: SEARCH_UI_URI.to_string(),
+                name: "Search Results UI".to_string(),
+                title: Some("Update Night Search".to_string()),
+                description: Some(
+                    "Interactive card grid for Update Night catalog search results".to_string(),
+                ),
+                mime_type: Some("text/html;profile=mcp-app".to_string()),
+                size: None,
+                icons: None,
+                meta: None,
+            },
+            annotations: None::<Annotations>,
+        };
+
+        Ok(ListResourcesResult::with_all_items(vec![resource]))
+    }
+
+    async fn read_resource(
+        &self,
+        request: ReadResourceRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ReadResourceResult, rmcp::ErrorData> {
+        if request.uri != SEARCH_UI_URI {
+            return Err(rmcp::ErrorData::resource_not_found(
+                format!("unknown resource: {}", request.uri),
+                None,
+            ));
+        }
+
+        Ok(ReadResourceResult {
+            contents: vec![ResourceContents::TextResourceContents {
+                uri: SEARCH_UI_URI.to_string(),
+                mime_type: Some("text/html;profile=mcp-app".to_string()),
+                text: SEARCH_UI_HTML.to_string(),
+                meta: None,
+            }],
+        })
     }
 }

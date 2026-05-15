@@ -1,0 +1,16 @@
+{
+  "name": "@updatenight/mcp-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.7.1"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vite": "^6",
+    "vite-plugin-singlefile": "^2"
+  }
+}

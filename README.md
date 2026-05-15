@@ -1,36 +1,78 @@
 # Update Night MCP
 
+[![Release](https://github.com/amajorai/updatenight-mcp/actions/workflows/release.yml/badge.svg)](https://github.com/amajorai/updatenight-mcp/actions/workflows/release.yml)
+
 MCP server for the Update Night catalog. Gives AI assistants tools to search and explore AI dev tools, agent frameworks, skills, and MCP servers.
 
-## Tools
+## Install
 
-**search** -- search the catalog by query string. Optionally filter by kind (`tool`, `skill`, `mcp`) and set a result limit. Returns entries with name, tagline, pricing, and install snippets.
+### Option 1 — cargo-binstall (pre-built binary, fastest)
 
-**get_entry** -- fetch a single catalog entry by kind and slug. Returns full details including description, pricing, install snippet, and homepage URL.
-
-**list_by_category** -- list entries by kind and category slug (e.g. `agent-framework`, `llm`, `rag`, `vector-db`). Returns entries sorted by publish date.
-
-**list_news** -- fetch recent news items from the Update Night news timeline. Accepts a `days` parameter (default 7). Returns titles, summaries, sources, and timestamps.
-
-## Build
-
+```sh
+cargo binstall updatenight-mcp
 ```
+
+Installs the pre-built binary for your platform. Get `cargo-binstall` from [cargo-bins/cargo-binstall](https://github.com/cargo-bins/cargo-binstall) if you don't have it.
+
+### Option 2 — Download binary
+
+Go to [Releases](https://github.com/amajorai/updatenight-mcp/releases) and grab the archive for your platform:
+
+| Platform | File |
+|----------|------|
+| macOS Apple Silicon | `updatenight-mcp-aarch64-apple-darwin.tar.gz` |
+| macOS Intel | `updatenight-mcp-x86_64-apple-darwin.tar.gz` |
+| Linux x86_64 | `updatenight-mcp-x86_64-unknown-linux-gnu.tar.gz` |
+| Linux ARM64 | `updatenight-mcp-aarch64-unknown-linux-gnu.tar.gz` |
+| Windows x86_64 | `updatenight-mcp-x86_64-pc-windows-msvc.zip` |
+
+**macOS / Linux:**
+
+```sh
+# Replace <target> with your platform (e.g. aarch64-apple-darwin)
+curl -fsSL https://github.com/amajorai/updatenight-mcp/releases/latest/download/updatenight-mcp-<target>.tar.gz \
+  | tar xz -C /tmp
+sudo mv /tmp/updatenight-mcp /usr/local/bin/updatenight-mcp
+```
+
+**Windows (PowerShell):**
+
+```powershell
+# Run as Administrator
+$target = "x86_64-pc-windows-msvc"
+$url = "https://github.com/amajorai/updatenight-mcp/releases/latest/download/updatenight-mcp-$target.zip"
+Invoke-WebRequest $url -OutFile "$env:TEMP\updatenight-mcp.zip"
+Expand-Archive "$env:TEMP\updatenight-mcp.zip" -DestinationPath "$env:TEMP\updatenight-mcp-bin"
+Move-Item "$env:TEMP\updatenight-mcp-bin\updatenight-mcp.exe" "C:\Windows\System32\updatenight-mcp.exe"
+```
+
+### Option 3 — Build from source
+
+```sh
 git clone https://github.com/amajorai/updatenight-mcp
 cd updatenight-mcp
 cargo build --release
-```
-
-Binary output: `target/release/updatenight-mcp` (or `updatenight-mcp.exe` on Windows).
-
-Move the binary somewhere on your PATH, for example:
-
-```
-# macOS / Linux
+# binary at target/release/updatenight-mcp (or .exe on Windows)
 sudo mv target/release/updatenight-mcp /usr/local/bin/updatenight-mcp
-
-# Windows (run as admin, or pick any directory on PATH)
-move target\release\updatenight-mcp.exe C:\Windows\System32\updatenight-mcp.exe
 ```
+
+## Updating
+
+Re-run whichever install method you used. For `cargo-binstall`:
+
+```sh
+cargo binstall updatenight-mcp
+```
+
+## Tools
+
+**search** — search the catalog by query string. Optionally filter by kind (`tool`, `skill`, `mcp`) and set a result limit. Returns entries with name, tagline, pricing, and install snippets.
+
+**get_entry** — fetch a single catalog entry by kind and slug. Returns full details including description, pricing, install snippet, and homepage URL.
+
+**list_by_category** — list entries by kind and category slug (e.g. `agent-framework`, `llm`, `rag`, `vector-db`). Returns entries sorted by publish date.
+
+**list_news** — fetch recent news items from the Update Night news timeline. Accepts a `days` parameter (default 7). Returns titles, summaries, sources, and timestamps.
 
 ## Authentication
 
@@ -244,7 +286,7 @@ Open Raycast, run "Manage MCP Servers", press Cmd+N to add a new server, or open
 
 ## Configuration
 
-`UPDATENIGHT_API_URL` -- API host to connect to. Defaults to `https://server.updatenight.com` if not set.
+`UPDATENIGHT_API_URL` — API host to connect to. Defaults to `https://server.updatenight.com` if not set.
 
 For local development, set it to your local server (port 3000 by default). You can do this in the `.env` file next to the binary, or pass it via your host's MCP env config:
 
@@ -265,5 +307,5 @@ The binary also loads a `.env` file from the working directory at startup if one
 
 ## Related
 
-- [Update Night CLI](https://github.com/amajorai/updatenight-cli) -- terminal UI for browsing the catalog
-- [Update Night Skill](https://github.com/amajorai/updatenight-skill) -- Claude Code skill for browsing the catalog from any AI agent
+- [Update Night CLI](https://github.com/amajorai/updatenight-cli) — terminal UI for browsing the catalog
+- [Update Night Skill](https://github.com/amajorai/updatenight-skill) — Claude Code skill for browsing the catalog from any AI agent
