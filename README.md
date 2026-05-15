@@ -244,7 +244,24 @@ Open Raycast, run "Manage MCP Servers", press Cmd+N to add a new server, or open
 
 ## Configuration
 
-Set `UPDATENIGHT_API_URL` to point at a different API host. Defaults to `https://server.updatenight.com`.
+`UPDATENIGHT_API_URL` -- API host to connect to. Defaults to `https://server.updatenight.com` if not set.
+
+For local development, set it to your local server (port 3000 by default). You can do this in the `.env` file next to the binary, or pass it via your host's MCP env config:
+
+```json
+{
+  "mcpServers": {
+    "updatenight": {
+      "command": "/usr/local/bin/updatenight-mcp",
+      "env": {
+        "UPDATENIGHT_API_URL": "http://localhost:3000"
+      }
+    }
+  }
+}
+```
+
+The binary also loads a `.env` file from the working directory at startup if one is present.
 
 ## Related
 
