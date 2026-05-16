@@ -1,0 +1,11 @@
+{
+  "name": "mcp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build:ui": "cd ui && bun install --frozen-lockfile && bun run build",
+    "build": "bun run build:ui && cargo build --release",
+    "dev": "cargo run",
+    "start": "cargo run --release"
+  }
+}

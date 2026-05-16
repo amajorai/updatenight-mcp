@@ -39,14 +39,22 @@ pub async fn ensure_token(client: &Client) -> anyhow::Result<String> {
 async fn device_auth_flow(client: &Client) -> anyhow::Result<String> {
     let base = api_base();
 
-    let resp: DeviceCodeResponse = client
-        .post(format!("{base}/api/auth/device/code"))
-        .json(&serde_json::json!({ "client_id": CLIENT_ID }))
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
+    let resp: DeviceCodeResponse = {
+        let url = format!("{base}/api/auth/device/code");
+        let body = serde_json::json!({ "client_id": CLIENT_ID });
+        let mut attempt = 0u32;
+        loop {
+            match client.post(&url).json(&body).send().await {
+                Ok(r) => break r.error_for_status()?.json::<DeviceCodeResponse>().await?,
+                Err(e) if e.is_connect() && attempt < 15 => {
+                    attempt += 1;
+                    eprintln!("Waiting for server to be ready... ({attempt}/15)");
+                    sleep(Duration::from_secs(2)).await;
+                }
+                Err(e) => return Err(e.into()),
+            }
+        }
+    };
 
     let url = resp
         .verification_uri_complete
