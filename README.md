@@ -309,3 +309,6 @@ The binary also loads a `.env` file from the working directory at startup if one
 
 - [Update Night CLI](https://github.com/amajorai/updatenight-cli) — terminal UI for browsing the catalog
 - [Update Night Skill](https://github.com/amajorai/updatenight-skill) — Claude Code skill for browsing the catalog from any AI agent
+
+Credential files are saved atomically with owner-only Unix permissions or a protected Windows ACL. Existing credentials are protected when loaded; symlink credentials are rejected. A user configuration directory is required.
+The API origin is resolved once at startup from explicitly set `UPDATENIGHT_API_URL`; working-directory `.env` files are not loaded. Tokens are bound to their issuing origin. Upgrading from an older credential file requires device authorization again. Device links must use HTTP or HTTPS; manual authorization remains available when no browser launcher is installed.

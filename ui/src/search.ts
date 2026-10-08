@@ -38,16 +38,16 @@ const PRICING_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 function badge(text: string, color: string): string {
-	return `<span style="background:${color}22;color:${color};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">${text}</span>`;
+	return `<span style="background:${color}22;color:${color};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">${escapeHtml(text)}</span>`;
 }
 
 function renderCard(item: SearchItem): string {
 	const color = KIND_COLORS[item.kind] ?? "#6b7280";
 	const pricing = item.pricing ? PRICING_LABELS[item.pricing] : null;
-	const url = `https://updatenight.com/${item.kind}/${item.slug}`;
+	const url = `https://updatenight.com/${encodeURIComponent(item.kind)}/${encodeURIComponent(item.slug)}`;
 
 	return `
-    <a href="${url}" target="_blank" rel="noopener noreferrer" class="card">
+    <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="card">
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
         ${badge(item.kind, color)}
         ${pricing ? `<span style="color:${pricing.color};font-size:12px;font-weight:500">${pricing.label}</span>` : ""}
@@ -140,7 +140,25 @@ app.ontoolresult = (result) => {
 		return;
 	}
 	try {
-		render(JSON.parse(textContent.text) as SearchResponse);
+		const data: unknown = JSON.parse(textContent.text);
+        if (!data || typeof data !== "object") return;
+        const payload = data as Record<string, unknown>;
+        if (payload.blurred === true) {
+            render({ query: "", total: 0, blurred: true, items: [] });
+            return;
+        }
+        if (typeof payload.query !== "string" || typeof payload.total !== "number" ||
+            !Number.isSafeInteger(payload.total) || payload.total < 0 ||
+            typeof payload.blurred !== "boolean" || !Array.isArray(payload.items)) return;
+        const items = payload.items.filter((item): item is SearchItem => {
+            if (!item || typeof item !== "object") return false;
+            const card = item as Record<string, unknown>;
+            return ["tool", "skill", "mcp"].includes(String(card.kind)) &&
+                typeof card.slug === "string" && /^[a-zA-Z0-9_-]{1,200}$/.test(card.slug) &&
+                typeof card.name === "string" && typeof card.tagline === "string" &&
+                (card.pricing === null || ["free", "paid", "freemium"].includes(String(card.pricing)));
+        }).slice(0, 100);
+        render({ query: payload.query, total: payload.total, blurred: payload.blurred, items });
 	} catch {
 		// malformed response
 	}
