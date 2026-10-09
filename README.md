@@ -288,7 +288,7 @@ Open Raycast, run "Manage MCP Servers", press Cmd+N to add a new server, or open
 
 `UPDATENIGHT_API_URL` — API host to connect to. Defaults to `https://server.updatenight.com` if not set.
 
-For local development, set it to your local server (port 3000 by default). You can do this in the `.env` file next to the binary, or pass it via your host's MCP env config:
+For local development, set it to your loopback server (port 3000 by default) through your host's MCP environment config:
 
 ```json
 {
@@ -303,12 +303,10 @@ For local development, set it to your local server (port 3000 by default). You c
 }
 ```
 
-The binary also loads a `.env` file from the working directory at startup if one is present.
-
 ## Related
 
 - [Update Night CLI](https://github.com/amajorai/updatenight-cli) — terminal UI for browsing the catalog
 - [Update Night Skill](https://github.com/amajorai/updatenight-skill) — Claude Code skill for browsing the catalog from any AI agent
 
 Credential files are saved atomically with owner-only Unix permissions or a protected Windows ACL. Existing credentials are protected when loaded; symlink credentials are rejected. A user configuration directory is required.
-The API origin is resolved once at startup from explicitly set `UPDATENIGHT_API_URL`; working-directory `.env` files are not loaded. Tokens are bound to their issuing origin. Upgrading from an older credential file requires device authorization again. Device links must use HTTP or HTTPS; manual authorization remains available when no browser launcher is installed.
+The API origin is resolved once at startup from explicitly set `UPDATENIGHT_API_URL`; working-directory `.env` files are not loaded. Tokens are bound to their issuing origin, and authenticated requests do not follow redirects. Upgrading from an older credential file requires device authorization again. Device links must use HTTPS, except for loopback HTTP during local development; manual authorization remains available when no browser launcher is installed.
