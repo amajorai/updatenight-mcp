@@ -259,6 +259,15 @@ mod windows_tests {
         assert_eq!(actual.access_token, expected.access_token);
         assert_eq!(actual.issuer, expected.issuer);
 
+        let replacement = Config {
+            access_token: Some("replacement-token".to_owned()),
+            issuer: expected.issuer.clone(),
+        };
+        save_to(&path, &replacement).unwrap();
+        let actual = load_from(&path).unwrap();
+        assert_eq!(actual.access_token, replacement.access_token);
+        assert_eq!(actual.issuer, replacement.issuer);
+
         std::fs::remove_dir_all(root).unwrap();
     }
 }
