@@ -28,5 +28,7 @@ schemars = "0.8"
 reqwest = { version = "0.12", features = ["json"] }
 anyhow = "1"
 dirs = "5"
-dotenvy = "0.15"
-open = "5"
+open = { version = "5", features = ["shellexecute-on-windows"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_System_Threading", "Win32_System_Memory"] }

@@ -28,17 +28,18 @@ pub fn api_base() -> String {
         .unwrap_or_else(|_| "https://server.updatenight.com".to_string())
 }
 
-pub async fn ensure_token(client: &Client) -> anyhow::Result<String> {
+pub async fn ensure_token(client: &Client, base: &str) -> anyhow::Result<String> {
     let cfg = config::load();
-    if let Some(token) = cfg.access_token {
+    if let Some(token) = cfg
+        .access_token
+        .filter(|_| cfg.issuer.as_deref() == Some(base))
+    {
         return Ok(token);
     }
-    device_auth_flow(client).await
+    device_auth_flow(client, base).await
 }
 
-async fn device_auth_flow(client: &Client) -> anyhow::Result<String> {
-    let base = api_base();
-
+async fn device_auth_flow(client: &Client, base: &str) -> anyhow::Result<String> {
     let resp: DeviceCodeResponse = {
         let url = format!("{base}/api/auth/device/code");
         let body = serde_json::json!({ "client_id": CLIENT_ID });
@@ -62,10 +63,19 @@ async fn device_auth_flow(client: &Client) -> anyhow::Result<String> {
         .unwrap_or(&resp.verification_uri);
 
     eprintln!("\nUpdate Night MCP - Authentication required");
-    eprintln!("Visit: {url}");
-    eprintln!("Code:  {}\n", resp.user_code);
+    eprintln!("Visit: {}", crate::security::terminal_text(url));
+    eprintln!(
+        "Code:  {}\n",
+        crate::security::terminal_text(&resp.user_code)
+    );
 
-    let _ = open::that(url);
+    crate::security::http_url(url)?;
+    if let Err(error) = crate::security::open_url(url) {
+        eprintln!(
+            "Open the authorization URL manually: {}",
+            crate::security::terminal_text(&error.to_string())
+        );
+    }
 
     let interval = Duration::from_secs(resp.interval.unwrap_or(5));
 
@@ -87,7 +97,8 @@ async fn device_auth_flow(client: &Client) -> anyhow::Result<String> {
         if let Some(token) = tr.access_token {
             config::save(&Config {
                 access_token: Some(token.clone()),
-            });
+                issuer: Some(base.to_owned()),
+            })?;
             eprintln!("Authorized.\n");
             return Ok(token);
         }
@@ -95,7 +106,12 @@ async fn device_auth_flow(client: &Client) -> anyhow::Result<String> {
         match tr.error.as_deref() {
             Some("authorization_pending") | None => continue,
             Some("slow_down") => sleep(Duration::from_secs(5)).await,
-            Some(e) => return Err(anyhow::anyhow!("Auth error: {e}")),
+            Some(e) => {
+                return Err(anyhow::anyhow!(
+                    "Auth error: {}",
+                    crate::security::terminal_text(e)
+                ))
+            }
         }
     }
 }

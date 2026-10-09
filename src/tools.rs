@@ -1,20 +1,16 @@
 use rmcp::{
-    RoleServer,
-    handler::server::{
-        tool::ToolCallContext,
-        wrapper::Parameters,
-    },
+    handler::server::{tool::ToolCallContext, wrapper::Parameters},
     model::{
         Annotated, Annotations, CallToolRequestParams, CallToolResult, Implementation,
         ListResourcesResult, ListToolsResult, Meta, PaginatedRequestParams, RawResource,
         ReadResourceRequestParams, ReadResourceResult, ResourceContents, ServerCapabilities,
         ServerInfo, Tool,
     },
-    schemars, service::RequestContext, tool, tool_router, ServerHandler,
+    schemars,
+    service::RequestContext,
+    tool, tool_router, RoleServer, ServerHandler,
 };
 use serde::Deserialize;
-
-use crate::auth::api_base;
 
 const SEARCH_UI_HTML: &str = include_str!("ui/search.html");
 
@@ -24,13 +20,14 @@ const SEARCH_UI_URI: &str = "ui://updatenight/search";
 pub struct UpdateNightMcp {
     pub client: reqwest::Client,
     pub token: String,
+    pub base: String,
 }
 
 impl UpdateNightMcp {
     async fn get(&self, path: &str) -> String {
         match self
             .client
-            .get(format!("{}{path}", api_base()))
+            .get(format!("{}{path}", self.base))
             .bearer_auth(&self.token)
             .send()
             .await
@@ -43,7 +40,7 @@ impl UpdateNightMcp {
     async fn post(&self, path: &str, body: serde_json::Value) -> String {
         match self
             .client
-            .post(format!("{}{path}", api_base()))
+            .post(format!("{}{path}", self.base))
             .bearer_auth(&self.token)
             .json(&body)
             .send()
@@ -82,7 +79,9 @@ pub struct ListNewsParams {
 
 #[tool_router]
 impl UpdateNightMcp {
-    #[tool(description = "Search the Update Night catalog for AI dev tools, skills, and MCP servers. Returns matching entries with name, tagline, pricing, and install snippets.")]
+    #[tool(
+        description = "Search the Update Night catalog for AI dev tools, skills, and MCP servers. Returns matching entries with name, tagline, pricing, and install snippets."
+    )]
     async fn search(&self, Parameters(p): Parameters<SearchParams>) -> String {
         self.post(
             "/api/search",
@@ -95,25 +94,40 @@ impl UpdateNightMcp {
         .await
     }
 
-    #[tool(description = "Get a single catalog entry by kind (tool|skill|mcp) and slug. Returns full details including description, pricing, install snippet, and links.")]
+    #[tool(
+        description = "Get a single catalog entry by kind (tool|skill|mcp) and slug. Returns full details including description, pricing, install snippet, and links."
+    )]
     async fn get_entry(&self, Parameters(p): Parameters<GetEntryParams>) -> String {
-        self.get(&format!("/api/entries/{}/{}", p.kind, p.slug)).await
+        let path = match entry_path(&p.kind, &p.slug) {
+            Ok(path) => path,
+            Err(error) => return error.to_string(),
+        };
+        self.get(&path).await
     }
 
-    #[tool(description = "List catalog entries by kind (tool|skill|mcp) and category slug (e.g. agent-framework, llm, rag). Returns entries sorted by publish date.")]
+    #[tool(
+        description = "List catalog entries by kind (tool|skill|mcp) and category slug (e.g. agent-framework, llm, rag). Returns entries sorted by publish date."
+    )]
     async fn list_by_category(&self, Parameters(p): Parameters<ListByCategoryParams>) -> String {
-        self.get(&format!(
-            "/api/entries?kind={}&category={}&limit={}",
-            p.kind,
-            p.category,
-            p.limit.unwrap_or(12)
-        ))
-        .await
+        if !matches!(p.kind.as_str(), "tool" | "skill" | "mcp") {
+            return "Invalid kind".to_owned();
+        }
+        let mut query = reqwest::Url::parse("https://updatenight.invalid/api/entries").unwrap();
+        query
+            .query_pairs_mut()
+            .append_pair("kind", &p.kind)
+            .append_pair("category", &p.category)
+            .append_pair("limit", &p.limit.unwrap_or(12).min(100).to_string());
+        self.get(&format!("/api/entries?{}", query.query().unwrap()))
+            .await
     }
 
-    #[tool(description = "List recent news items from the Update Night news timeline. Returns titles, summaries, sources, and timestamps.")]
+    #[tool(
+        description = "List recent news items from the Update Night news timeline. Returns titles, summaries, sources, and timestamps."
+    )]
     async fn list_news(&self, Parameters(p): Parameters<ListNewsParams>) -> String {
-        self.get(&format!("/api/news?days={}", p.days.unwrap_or(7))).await
+        self.get(&format!("/api/news?days={}", p.days.unwrap_or(7)))
+            .await
     }
 }
 
@@ -218,5 +232,34 @@ impl ServerHandler for UpdateNightMcp {
                 meta: None,
             }],
         })
+    }
+}
+
+fn entry_path(kind: &str, slug: &str) -> anyhow::Result<String> {
+    anyhow::ensure!(matches!(kind, "tool" | "skill" | "mcp"), "Invalid kind");
+    anyhow::ensure!(
+        !slug.is_empty()
+            && slug.len() <= 200
+            && slug
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'),
+        "Invalid slug"
+    );
+    Ok(format!("/api/entries/{kind}/{slug}"))
+}
+
+#[cfg(test)]
+mod security_tests {
+    use super::*;
+    #[test]
+    fn entry_requests_cannot_escape_the_entry_route() {
+        assert_eq!(
+            entry_path("tool", "ordinary-tool").unwrap(),
+            "/api/entries/tool/ordinary-tool"
+        );
+        for slug in ["..", "../admin", "%2e%2e", "thing?admin=1", "a/b", "a#b"] {
+            assert!(entry_path("tool", slug).is_err());
+        }
+        assert!(entry_path("../admin", "ordinary").is_err());
     }
 }
