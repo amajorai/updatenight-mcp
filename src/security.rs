@@ -11,8 +11,12 @@ pub fn http_url(value: &str) -> anyhow::Result<reqwest::Url> {
     let host = url
         .host_str()
         .ok_or_else(|| anyhow::anyhow!("Expected a URL host"))?;
+    let address_host = host
+        .strip_prefix('[')
+        .and_then(|host| host.strip_suffix(']'))
+        .unwrap_or(host);
     let loopback = host.eq_ignore_ascii_case("localhost")
-        || host
+        || address_host
             .parse::<std::net::IpAddr>()
             .is_ok_and(|address| address.is_loopback());
     anyhow::ensure!(
@@ -44,6 +48,7 @@ mod tests {
         for url in [
             "https://example.com/a?x=%22%26",
             "http://localhost:3000/verify",
+            "http://[::1]:3000/verify",
         ] {
             assert!(http_url(url).is_ok());
         }
