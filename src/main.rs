@@ -8,7 +8,7 @@ use tools::UpdateNightMcp;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let client = reqwest::Client::new();
+    let client = security::http_client()?;
     let url = security::http_url(&auth::api_base())?;
     anyhow::ensure!(
         url.path() == "/" && url.query().is_none() && url.fragment().is_none(),
